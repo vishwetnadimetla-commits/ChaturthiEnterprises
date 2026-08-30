@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { format, subDays } from 'date-fns';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, AreaChart, Area,
+  ResponsiveContainer, AreaChart, Area, LabelList
 } from 'recharts';
 import {
   Download, SlidersHorizontal, RefreshCw, Loader2, Maximize2,
@@ -116,17 +116,19 @@ export default function DashboardPage() {
     fontSize: '12px',
   };
 
-  // Helper to render chart content
+  // Helper to render chart content with Data Labels on Top / Intersections
   const renderChart = (type: 'product' | 'daily' | 'topShops', height = 280) => {
     if (type === 'product') {
       return (
         <ResponsiveContainer width="100%" height={height}>
-          <BarChart data={productChart} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
+          <BarChart data={productChart} margin={{ top: 25, right: 15, left: -15, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
             <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
             <Tooltip contentStyle={tooltipStyle} cursor={{ fill: '#f8fafc' }} />
-            <Bar dataKey="litres" name="Litres (L)" fill="#7c3aed" radius={[6, 6, 0, 0]} />
+            <Bar dataKey="litres" name="Litres (L)" fill="#7c3aed" radius={[6, 6, 0, 0]}>
+              <LabelList dataKey="litres" position="top" fill="#6d28d9" fontSize={11} fontWeight="bold" formatter={(v: any) => `${v} L`} />
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
       );
@@ -134,7 +136,7 @@ export default function DashboardPage() {
     if (type === 'daily') {
       return (
         <ResponsiveContainer width="100%" height={height}>
-          <AreaChart data={dailyChart} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
+          <AreaChart data={dailyChart} margin={{ top: 25, right: 15, left: -15, bottom: 5 }}>
             <defs>
               <linearGradient id="colorLitres" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#7c3aed" stopOpacity={0.3}/>
@@ -145,19 +147,23 @@ export default function DashboardPage() {
             <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
             <Tooltip contentStyle={tooltipStyle} />
-            <Area type="monotone" dataKey="litres" name="Litres (L)" stroke="#7c3aed" strokeWidth={3} fillOpacity={1} fill="url(#colorLitres)" />
+            <Area type="monotone" dataKey="litres" name="Litres (L)" stroke="#7c3aed" strokeWidth={3} fillOpacity={1} fill="url(#colorLitres)">
+              <LabelList dataKey="litres" position="top" fill="#6d28d9" fontSize={10} fontWeight="bold" formatter={(v: any) => v > 0 ? `${v} L` : ''} />
+            </Area>
           </AreaChart>
         </ResponsiveContainer>
       );
     }
     return (
       <ResponsiveContainer width="100%" height={height}>
-        <BarChart data={topShopsChart} layout="vertical" margin={{ top: 10, right: 15, left: 20, bottom: 5 }}>
+        <BarChart data={topShopsChart} layout="vertical" margin={{ top: 15, right: 45, left: 15, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
           <XAxis type="number" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
           <YAxis dataKey="name" type="category" tick={{ fontSize: 11, fill: '#475569' }} axisLine={false} tickLine={false} width={130} />
           <Tooltip contentStyle={tooltipStyle} cursor={{ fill: '#f8fafc' }} />
-          <Bar dataKey="litres" name="Total Litres (L)" fill="#9a6bff" radius={[0, 6, 6, 0]} />
+          <Bar dataKey="litres" name="Total Litres (L)" fill="#9a6bff" radius={[0, 6, 6, 0]}>
+            <LabelList dataKey="litres" position="right" fill="#6d28d9" fontSize={11} fontWeight="bold" formatter={(v: any) => `${v} L`} />
+          </Bar>
         </BarChart>
       </ResponsiveContainer>
     );
@@ -177,84 +183,100 @@ export default function DashboardPage() {
             onClick={() => { if (kpi) exportToExcel(filters, kpi, tableData); }}
             className="btn-secondary flex items-center gap-2 text-sm"
           >
-            <Download size={15} /> Excel Export
+            <Download size={15} /> Excel Export (CA Audit)
           </button>
           <button
             onClick={() => exportDashboardToPDF('dash-export')}
             className="btn-primary flex items-center gap-2 text-sm"
           >
-            <Download size={15} /> PDF Report
+            <Download size={15} /> PDF Infographic Report
           </button>
         </div>
       </div>
 
       <div id="dash-export" className="flex-1 p-4 md:p-6 space-y-6 bg-slate-50">
 
-        {/* ── PERFORMANCE MANAGER INFOGRAPHIC BRAND HEADER (Rendered on PDF Report Export) ── */}
-        <div className="bg-gradient-to-r from-slate-900 via-brand-900 to-slate-900 text-white rounded-2xl p-6 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4 border border-brand-800/40">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="bg-brand-500/30 text-brand-200 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-widest border border-brand-400/30">
-                Performance Analytics & Infographic Report
-              </span>
+        {/* ── BLOCK 1: BRAND HEADER & KPI SUMMARY ── */}
+        <div data-pdf-block="true" className="space-y-4">
+          <div className="bg-gradient-to-r from-slate-900 via-brand-900 to-slate-900 text-white rounded-2xl p-6 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4 border border-brand-800/40">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="bg-brand-500/30 text-brand-200 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-widest border border-brand-400/30">
+                  Performance Analytics & Infographic Report
+                </span>
+              </div>
+              <h1 className="text-2xl font-black tracking-tight text-white">Chaturthi Enterprises</h1>
+              <p className="text-xs text-slate-300 mt-1 font-medium">
+                Milk Distribution Audit & Operations Report · Period: <span className="text-white font-bold">{filters.fromDate}</span> to <span className="text-white font-bold">{filters.toDate}</span>
+              </p>
             </div>
-            <h1 className="text-2xl font-black tracking-tight text-white">Chaturthi Enterprises</h1>
-            <p className="text-xs text-slate-300 mt-1 font-medium">
-              Milk Distribution Audit & Operations Report · Period: <span className="text-white font-bold">{filters.fromDate}</span> to <span className="text-white font-bold">{filters.toDate}</span>
-            </p>
+            <div className="text-left md:text-right bg-white/10 backdrop-blur-xs p-3 px-4 rounded-xl border border-white/10 shrink-0">
+              <p className="text-[10px] uppercase font-bold tracking-wider text-brand-200">Generated On</p>
+              <p className="text-sm font-bold text-white">{format(new Date(), 'dd MMMM yyyy')}</p>
+              <p className="text-[11px] text-slate-300">Live Supabase Database Sync</p>
+            </div>
           </div>
-          <div className="text-left md:text-right bg-white/10 backdrop-blur-xs p-3 px-4 rounded-xl border border-white/10 shrink-0">
-            <p className="text-[10px] uppercase font-bold tracking-wider text-brand-200">Generated On</p>
-            <p className="text-sm font-bold text-white">{format(new Date(), 'dd MMMM yyyy')}</p>
-            <p className="text-[11px] text-slate-300">Live Supabase Database Sync</p>
-          </div>
-        </div>
 
-        {/* ── Filters ── */}
-        <div className="card p-4">
-          <p className="label-xs flex items-center gap-1.5 mb-3">
-            <SlidersHorizontal size={11} /> Filters
-          </p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div>
-              <label className="label-xs mb-1 block">From Date</label>
-              <input type="date" value={filters.fromDate}
-                onChange={e => setFilters({ ...filters, fromDate: e.target.value })}
-                className="input-base text-sm" />
+          {/* Filters */}
+          <div className="card p-4">
+            <p className="label-xs flex items-center gap-1.5 mb-3">
+              <SlidersHorizontal size={11} /> Filters
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div>
+                <label className="label-xs mb-1 block">From Date</label>
+                <input type="date" value={filters.fromDate}
+                  onChange={e => setFilters({ ...filters, fromDate: e.target.value })}
+                  className="input-base text-sm" />
+              </div>
+              <div>
+                <label className="label-xs mb-1 block">To Date</label>
+                <input type="date" value={filters.toDate}
+                  onChange={e => setFilters({ ...filters, toDate: e.target.value })}
+                  className="input-base text-sm" />
+              </div>
+              <div>
+                <label className="label-xs mb-1 block">Filter Shop</label>
+                <select value={filters.shopId}
+                  onChange={e => setFilters({ ...filters, shopId: e.target.value })}
+                  className="input-base text-sm appearance-none">
+                  <option value="">All Shops</option>
+                  {shops.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="label-xs mb-1 block">Filter Product</label>
+                <select value={filters.productId}
+                  onChange={e => setFilters({ ...filters, productId: e.target.value })}
+                  className="input-base text-sm appearance-none">
+                  <option value="">All Products</option>
+                  {products.map(p => <option key={p.id} value={p.id}>{p.short_name} — {p.name}</option>)}
+                </select>
+              </div>
             </div>
-            <div>
-              <label className="label-xs mb-1 block">To Date</label>
-              <input type="date" value={filters.toDate}
-                onChange={e => setFilters({ ...filters, toDate: e.target.value })}
-                className="input-base text-sm" />
-            </div>
-            <div>
-              <label className="label-xs mb-1 block">Filter Shop</label>
-              <select value={filters.shopId}
-                onChange={e => setFilters({ ...filters, shopId: e.target.value })}
-                className="input-base text-sm appearance-none">
-                <option value="">All Shops</option>
-                {shops.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="label-xs mb-1 block">Filter Product</label>
-              <select value={filters.productId}
-                onChange={e => setFilters({ ...filters, productId: e.target.value })}
-                className="input-base text-sm appearance-none">
-                <option value="">All Products</option>
-                {products.map(p => <option key={p.id} value={p.id}>{p.short_name} — {p.name}</option>)}
-              </select>
+            <div className="flex justify-end gap-2 mt-3 pt-3 border-t border-slate-100">
+              <button onClick={reset} className="btn-secondary text-sm py-2 flex items-center gap-1.5">
+                <RefreshCw size={13} /> Reset
+              </button>
+              <button onClick={() => loadData()} className="btn-primary text-sm py-2 px-5">
+                Apply Filters
+              </button>
             </div>
           </div>
-          <div className="flex justify-end gap-2 mt-3 pt-3 border-t border-slate-100">
-            <button onClick={reset} className="btn-secondary text-sm py-2 flex items-center gap-1.5">
-              <RefreshCw size={13} /> Reset
-            </button>
-            <button onClick={() => loadData()} className="btn-primary text-sm py-2 px-5">
-              Apply Filters
-            </button>
-          </div>
+
+          {/* KPI Cards */}
+          {kpi && (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <KpiCard label="Total Litres" value={`${kpi.totalLitres.toFixed(2)} L`} sub="total volume distributed" />
+              <KpiCard label="Total Units" value={kpi.totalUnits.toLocaleString()} sub="total packs distributed" />
+              <KpiCard label="Active Shops" value={String(kpi.totalShops)} sub="shops with entries" />
+              <KpiCard
+                label="Avg. Sell / Day"
+                value={`${kpi.avgSellPerDay.toFixed(2)} L`}
+                sub={`over ${kpi.durationDays} selected day(s)`}
+              />
+            </div>
+          )}
         </div>
 
         {loading ? (
@@ -263,27 +285,15 @@ export default function DashboardPage() {
           </div>
         ) : (
           <>
-            {/* ── KPI Cards ── */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <KpiCard label="Total Litres" value={`${kpi?.totalLitres.toFixed(2)} L`} sub="total volume distributed" />
-              <KpiCard label="Total Units" value={kpi?.totalUnits.toLocaleString() ?? '0'} sub="total packs distributed" />
-              <KpiCard label="Active Shops" value={String(kpi?.totalShops ?? 0)} sub="shops with entries" />
-              <KpiCard
-                label="Avg. Sell / Day"
-                value={`${kpi?.avgSellPerDay.toFixed(2) ?? '0.00'} L`}
-                sub={`over ${kpi?.durationDays ?? 1} selected day(s)`}
-              />
-            </div>
-
-            {/* ── 3 CHARTS STACKED IN COLUMNS (Vertical Layout) ── */}
+            {/* ── 3 CHARTS STACKED IN COLUMNS (Vertical Layout with Smart PDF Blocks) ── */}
             <div className="flex flex-col gap-6">
 
               {/* Chart 1: Product-wise Litres */}
-              <div className="card p-5 overflow-hidden">
+              <div data-pdf-block="true" className="card p-5 overflow-hidden">
                 <div className="flex flex-wrap items-center justify-between gap-3 mb-4 border-b border-slate-100 pb-3">
                   <div>
                     <h3 className="font-bold text-slate-800 text-base">1. Product-wise Litres Distribution</h3>
-                    <p className="text-xs text-slate-400">Total volume by product type</p>
+                    <p className="text-xs text-slate-400">Total volume by product type with exact bar values</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg text-xs font-medium">
@@ -309,17 +319,17 @@ export default function DashboardPage() {
 
                 <div className="overflow-x-auto">
                   <div style={{ width: `${zoom1}%` }} className="transition-all duration-200">
-                    {renderChart('product', 280)}
+                    {renderChart('product', 290)}
                   </div>
                 </div>
               </div>
 
               {/* Chart 2: Daily Litres Trend */}
-              <div className="card p-5 overflow-hidden">
+              <div data-pdf-block="true" className="card p-5 overflow-hidden">
                 <div className="flex flex-wrap items-center justify-between gap-3 mb-4 border-b border-slate-100 pb-3">
                   <div>
-                    <h3 className="font-bold text-slate-800 text-base">2. Daily Volume Trend</h3>
-                    <p className="text-xs text-slate-400">Day-by-day distribution litres timeline</p>
+                    <h3 className="font-bold text-slate-800 text-base">2. Daily Volume Trend Timeline</h3>
+                    <p className="text-xs text-slate-400">Day-by-day distribution litres with peak labels</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg text-xs font-medium">
@@ -335,7 +345,7 @@ export default function DashboardPage() {
                       ))}
                     </div>
                     <button
-                      onClick={() => setFullScreenChart({ title: 'Daily Volume Trend', type: 'daily' })}
+                      onClick={() => setFullScreenChart({ title: 'Daily Volume Trend Timeline', type: 'daily' })}
                       className="btn-secondary text-xs py-1.5 px-3 flex items-center gap-1.5"
                     >
                       <Maximize2 size={13} /> Full Screen
@@ -345,16 +355,16 @@ export default function DashboardPage() {
 
                 <div className="overflow-x-auto">
                   <div style={{ width: `${zoom2}%` }} className="transition-all duration-200">
-                    {renderChart('daily', 280)}
+                    {renderChart('daily', 290)}
                   </div>
                 </div>
               </div>
 
               {/* Chart 3: Top Shops Volume Ranking */}
-              <div className="card p-5 overflow-hidden">
+              <div data-pdf-block="true" className="card p-5 overflow-hidden">
                 <div className="flex flex-wrap items-center justify-between gap-3 mb-4 border-b border-slate-100 pb-3">
                   <div>
-                    <h3 className="font-bold text-slate-800 text-base">3. Top Shops by Sales Volume</h3>
+                    <h3 className="font-bold text-slate-800 text-base">3. Top Shops Sales Volume Leaderboard</h3>
                     <p className="text-xs text-slate-400">Highest volume performing shops in selected period</p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -371,7 +381,7 @@ export default function DashboardPage() {
                       ))}
                     </div>
                     <button
-                      onClick={() => setFullScreenChart({ title: 'Top Shops by Sales Volume', type: 'topShops' })}
+                      onClick={() => setFullScreenChart({ title: 'Top Shops Sales Volume Leaderboard', type: 'topShops' })}
                       className="btn-secondary text-xs py-1.5 px-3 flex items-center gap-1.5"
                     >
                       <Maximize2 size={13} /> Full Screen
@@ -381,25 +391,23 @@ export default function DashboardPage() {
 
                 <div className="overflow-x-auto">
                   <div style={{ width: `${zoom3}%` }} className="transition-all duration-200">
-                    {renderChart('topShops', 320)}
+                    {renderChart('topShops', 330)}
                   </div>
                 </div>
               </div>
 
             </div>
 
-            {/* ── DETAILED DISTRIBUTION RECORDS (SINGLE-LINE PER DATE+SHOP) ── */}
-            <div className="card overflow-hidden">
-              {/* Header with Top-aligned Right Pagination & View All Button */}
+            {/* ── DETAILED DISTRIBUTION RECORDS ── */}
+            <div data-pdf-block="true" className="card overflow-hidden">
+              {/* Header */}
               <div className="px-5 py-4 border-b border-slate-100 bg-white flex flex-col md:flex-row md:items-center justify-between gap-3">
                 <div>
-                  <h3 className="font-bold text-slate-800 text-base">Detailed Distribution Records</h3>
+                  <h3 className="font-bold text-slate-800 text-base">Detailed Distribution Submissions</h3>
                   <p className="text-xs text-slate-400">1 single line per submission (Date + Shop). Total {filteredTableData.length} submissions.</p>
                 </div>
 
-                {/* Right-aligned Top Pagination & Action Controls */}
                 <div className="flex flex-wrap items-center gap-3 self-end md:self-auto">
-                  {/* Search box */}
                   <div className="relative">
                     <input
                       type="text"
@@ -411,7 +419,6 @@ export default function DashboardPage() {
                     <Search size={13} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400" />
                   </div>
 
-                  {/* Page Size Selector */}
                   <div className="flex items-center gap-1.5 text-xs text-slate-500">
                     <span>Rows:</span>
                     <select
@@ -426,7 +433,6 @@ export default function DashboardPage() {
                     </select>
                   </div>
 
-                  {/* Pagination Buttons */}
                   {pageSize !== -1 && (
                     <div className="flex items-center gap-1 text-xs">
                       <button
@@ -449,7 +455,6 @@ export default function DashboardPage() {
                     </div>
                   )}
 
-                  {/* View All / Full Page View Button */}
                   <button
                     onClick={() => setFullTableOpen(true)}
                     className="btn-primary text-xs py-1.5 px-3 flex items-center gap-1.5 shrink-0"
@@ -459,7 +464,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Single-Line Table Data */}
+              {/* Table Data */}
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-slate-50 border-b border-slate-100">
@@ -482,17 +487,12 @@ export default function DashboardPage() {
                     ) : (
                       paginatedRows.map(row => (
                         <tr key={row.id} className="border-b border-slate-100 hover:bg-slate-50/80 transition-colors">
-                          {/* Date */}
                           <td className="px-5 py-3.5 text-slate-500 text-xs font-semibold whitespace-nowrap">
                             {format(new Date(row.date), 'dd MMM yyyy')}
                           </td>
-
-                          {/* Shop Name */}
                           <td className="px-5 py-3.5 font-bold text-slate-800 whitespace-nowrap">
                             {row.shop}
                           </td>
-
-                          {/* Products Summary Badges */}
                           <td className="px-5 py-3.5">
                             <div className="flex flex-wrap items-center gap-1.5">
                               {row.summaryBadges.map(b => (
@@ -502,18 +502,12 @@ export default function DashboardPage() {
                               ))}
                             </div>
                           </td>
-
-                          {/* Total Units */}
                           <td className="px-5 py-3.5 font-medium text-slate-600">
                             {row.totalUnits} units
                           </td>
-
-                          {/* Total Litres */}
                           <td className="px-5 py-3.5 font-extrabold text-slate-900">
                             {row.totalLitres.toFixed(2)} L
                           </td>
-
-                          {/* View Entire Entry Button */}
                           <td className="px-5 py-3.5 text-right whitespace-nowrap">
                             <button
                               onClick={() => setSelectedEntry(row)}
@@ -537,7 +531,6 @@ export default function DashboardPage() {
       {selectedEntry && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5">
-            {/* Modal Header */}
             <div className="flex justify-between items-start border-b border-slate-100 pb-4">
               <div>
                 <span className="text-[10px] font-bold text-brand-600 bg-brand-50 px-2 py-0.5 rounded-md uppercase tracking-wider">
@@ -559,7 +552,6 @@ export default function DashboardPage() {
               </button>
             </div>
 
-            {/* Total Summary Bar */}
             <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200/80">
               <div>
                 <p className="label-xs">Total Volume</p>
@@ -571,7 +563,6 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Itemized Line Items Breakdown */}
             <div>
               <p className="label-xs mb-2 flex items-center gap-1">
                 <Layers size={11} /> Itemized Breakdown
@@ -602,7 +593,6 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Modal Actions */}
             <div className="flex justify-between items-center pt-3 border-t border-slate-100">
               <button
                 type="button"
@@ -662,7 +652,6 @@ export default function DashboardPage() {
               </div>
 
               <div className="flex items-center gap-3">
-                {/* Search */}
                 <div className="relative">
                   <input
                     type="text"

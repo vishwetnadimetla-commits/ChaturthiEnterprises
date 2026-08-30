@@ -15,7 +15,6 @@ export const exportToExcel = async (
   workbook.lastModifiedBy = 'CA Audit System';
   workbook.created = new Date();
 
-  // Color Constants for CA Styling
   const NAVY_HEADER = '1E293B';
 
   // ----------------------------------------------------
@@ -157,48 +156,58 @@ export const exportToExcel = async (
   window.URL.revokeObjectURL(url);
 };
 
-// ── PERFORMANCE MANAGERS INFOGRAPHIC PDF REPORT EXPORT ──
+// ── PERFORMANCE MANAGERS INFOGRAPHIC PDF REPORT EXPORT (SMART BLOCK PAGE BREAK ENGINE) ──
 export const exportDashboardToPDF = async (elementId: string) => {
-  const element = document.getElementById(elementId);
-  if (!element) return alert('Report container not found.');
+  const container = document.getElementById(elementId);
+  if (!container) return alert('Report container not found.');
 
   try {
-    // Scroll container to top before taking canvas snapshot
     const prevScroll = window.scrollY;
     window.scrollTo(0, 0);
 
-    const canvas = await html2canvas(element, {
-      scale: 2,
-      useCORS: true,
-      logging: false,
-      backgroundColor: '#f8fafc',
-    });
-
-    window.scrollTo(0, prevScroll);
-
-    const imgData = canvas.toDataURL('image/jpeg', 0.95);
     const pdf = new jsPDF('p', 'mm', 'a4');
+    const pdfPageWidth = 210;
+    const pdfPageHeight = 297;
+    const margin = 10;
+    const printableWidth = pdfPageWidth - margin * 2;
+    const maxPageY = pdfPageHeight - margin;
 
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
+    let currentY = margin;
+    let isFirstPage = true;
 
-    const imgWidth = pageWidth;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    // Select all tagged PDF section blocks inside dash-export
+    const pdfBlocks = Array.from(container.querySelectorAll('[data-pdf-block="true"]')) as HTMLElement[];
 
-    let heightLeft = imgHeight;
-    let position = 0;
+    // Fallback if no blocks found
+    const blocksToRender = pdfBlocks.length > 0 ? pdfBlocks : [container];
 
-    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-    heightLeft -= pageHeight;
+    for (let i = 0; i < blocksToRender.length; i++) {
+      const block = blocksToRender[i];
 
-    // Handle multi-page overflow if report exceeds single A4 page
-    while (heightLeft > 0) {
-      position = heightLeft - imgHeight;
-      pdf.addPage();
-      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
+      const canvas = await html2canvas(block, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#f8fafc',
+      });
+
+      const blockImgWidth = printableWidth;
+      const blockImgHeight = (canvas.height * blockImgWidth) / canvas.width;
+
+      // Check if block exceeds remaining height on current page
+      if (!isFirstPage && currentY + blockImgHeight > maxPageY) {
+        pdf.addPage();
+        currentY = margin;
+      }
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      pdf.addImage(imgData, 'JPEG', margin, currentY, blockImgWidth, blockImgHeight);
+
+      currentY += blockImgHeight + 8; // 8mm spacing after block
+      isFirstPage = false;
     }
 
+    window.scrollTo(0, prevScroll);
     pdf.save(`Chaturthi_Performance_Report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
   } catch (err: any) {
     console.error('Error generating PDF:', err);
