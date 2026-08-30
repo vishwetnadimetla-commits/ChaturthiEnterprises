@@ -7,7 +7,7 @@ import {
 } from 'recharts';
 import {
   Download, SlidersHorizontal, RefreshCw, Loader2, Maximize2,
-  ChevronLeft, ChevronRight, Pencil, Eye, Search, X
+  ChevronLeft, ChevronRight, Pencil, Eye, Search, X, Calendar, Store, Layers
 } from 'lucide-react';
 import { getDashboardData } from '../services/dashboard.service';
 import type { DashboardFilters, KPIData, ChartData, TableRow } from '../services/dashboard.service';
@@ -54,6 +54,9 @@ export default function DashboardPage() {
     type: 'product' | 'daily' | 'topShops';
   } | null>(null);
 
+  // ── View Entire Entry Modal State ──
+  const [selectedEntry, setSelectedEntry] = useState<TableRow | null>(null);
+
   // ── Table Pagination & Full Screen Table State ──
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(10);
@@ -93,9 +96,8 @@ export default function DashboardPage() {
     const q = tableSearch.toLowerCase();
     return tableData.filter(r =>
       r.shop.toLowerCase().includes(q) ||
-      r.product.toLowerCase().includes(q) ||
-      r.range.toLowerCase().includes(q) ||
-      r.date.includes(q)
+      r.date.includes(q) ||
+      r.summaryBadges.some(b => b.name.toLowerCase().includes(q))
     );
   }, [tableData, tableSearch]);
 
@@ -148,7 +150,6 @@ export default function DashboardPage() {
         </ResponsiveContainer>
       );
     }
-    // Top shops horizontal bar chart
     return (
       <ResponsiveContainer width="100%" height={height}>
         <BarChart data={topShopsChart} layout="vertical" margin={{ top: 10, right: 15, left: 20, bottom: 5 }}>
@@ -265,7 +266,6 @@ export default function DashboardPage() {
                     <p className="text-xs text-slate-400">Total volume by product type</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    {/* Zoom / Width controls */}
                     <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg text-xs font-medium">
                       <span className="text-slate-400 px-1">Width:</span>
                       {[100, 150, 200].map(z => (
@@ -278,7 +278,6 @@ export default function DashboardPage() {
                         </button>
                       ))}
                     </div>
-                    {/* Full Screen View button */}
                     <button
                       onClick={() => setFullScreenChart({ title: 'Product-wise Litres Distribution', type: 'product' })}
                       className="btn-secondary text-xs py-1.5 px-3 flex items-center gap-1.5"
@@ -369,13 +368,13 @@ export default function DashboardPage() {
 
             </div>
 
-            {/* ── DETAILED DISTRIBUTION TABLE (WITH TOP RIGHT PAGINATION & VIEW ALL) ── */}
+            {/* ── DETAILED DISTRIBUTION RECORDS (SINGLE-LINE PER DATE+SHOP) ── */}
             <div className="card overflow-hidden">
               {/* Header with Top-aligned Right Pagination & View All Button */}
               <div className="px-5 py-4 border-b border-slate-100 bg-white flex flex-col md:flex-row md:items-center justify-between gap-3">
                 <div>
                   <h3 className="font-bold text-slate-800 text-base">Detailed Distribution Records</h3>
-                  <p className="text-xs text-slate-400">Total {filteredTableData.length} records found. Click Edit to update entry anytime.</p>
+                  <p className="text-xs text-slate-400">1 single line per submission (Date + Shop). Total {filteredTableData.length} submissions.</p>
                 </div>
 
                 {/* Right-aligned Top Pagination & Action Controls */}
@@ -384,7 +383,7 @@ export default function DashboardPage() {
                   <div className="relative">
                     <input
                       type="text"
-                      placeholder="Search shop/product..."
+                      placeholder="Search shop or product..."
                       value={tableSearch}
                       onChange={e => { setTableSearch(e.target.value); setCurrentPage(1); }}
                       className="text-xs border border-slate-200 rounded-lg pl-7 pr-3 py-1.5 w-44 focus:outline-none focus:ring-1 focus:ring-brand-500"
@@ -440,46 +439,67 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Table Data */}
+              {/* Single-Line Table Data */}
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-slate-50 border-b border-slate-100">
                     <tr>
-                      {['Date', 'Shop Name', 'Product', 'Pack Size', 'Units', 'Litres', 'Actions'].map(h => (
-                        <th key={h} className="px-5 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider last:text-right">
-                          {h}
-                        </th>
-                      ))}
+                      <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Date</th>
+                      <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Shop Name</th>
+                      <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Products Summary</th>
+                      <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Total Units</th>
+                      <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Total Litres</th>
+                      <th className="px-5 py-3 text-right text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Action</th>
                     </tr>
                   </thead>
                   <tbody>
                     {paginatedRows.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="px-5 py-10 text-center text-slate-400 text-sm">
-                          No matching distribution records found.
+                        <td colSpan={6} className="px-5 py-10 text-center text-slate-400 text-sm">
+                          No matching distribution entries found.
                         </td>
                       </tr>
                     ) : (
                       paginatedRows.map(row => (
-                        <tr key={row.id} className="border-b border-slate-50 hover:bg-slate-50/70 transition-colors">
-                          <td className="px-5 py-3 text-slate-500 text-xs font-medium">
+                        <tr key={row.id} className="border-b border-slate-100 hover:bg-slate-50/80 transition-colors">
+                          {/* Date */}
+                          <td className="px-5 py-3.5 text-slate-500 text-xs font-semibold whitespace-nowrap">
                             {format(new Date(row.date), 'dd MMM yyyy')}
                           </td>
-                          <td className="px-5 py-3 font-semibold text-slate-800">{row.shop}</td>
-                          <td className="px-5 py-3">
-                            <span className="text-xs font-bold bg-brand-50 text-brand-700 px-2 py-0.5 rounded-md">{row.product}</span>
+
+                          {/* Shop Name */}
+                          <td className="px-5 py-3.5 font-bold text-slate-800 whitespace-nowrap">
+                            {row.shop}
                           </td>
-                          <td className="px-5 py-3 text-slate-500 text-xs">{row.range}</td>
-                          <td className="px-5 py-3 font-medium text-slate-700">{row.units}</td>
-                          <td className="px-5 py-3 font-bold text-slate-900">{row.litres.toFixed(2)} L</td>
-                          <td className="px-5 py-3 text-right">
-                            {/* UPDATE ENTRY BUTTON */}
+
+                          {/* Products Summary Badges */}
+                          <td className="px-5 py-3.5">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              {row.summaryBadges.map(b => (
+                                <span key={b.name} className="text-xs font-bold bg-brand-50 text-brand-700 px-2 py-0.5 rounded-md border border-brand-100">
+                                  {b.name} {b.litres > 0 ? `${b.litres.toFixed(1)}L` : ''}
+                                </span>
+                              ))}
+                            </div>
+                          </td>
+
+                          {/* Total Units */}
+                          <td className="px-5 py-3.5 font-medium text-slate-600">
+                            {row.totalUnits} units
+                          </td>
+
+                          {/* Total Litres */}
+                          <td className="px-5 py-3.5 font-extrabold text-slate-900">
+                            {row.totalLitres.toFixed(2)} L
+                          </td>
+
+                          {/* View Entire Entry Button */}
+                          <td className="px-5 py-3.5 text-right whitespace-nowrap">
                             <button
-                              onClick={() => navigate(`/?date=${row.date}&shopId=${row.shopId}`)}
-                              className="btn-secondary text-xs py-1 px-2.5 flex items-center gap-1 ml-auto text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200"
-                              title="Update/Edit entry for this shop and date"
+                              onClick={() => setSelectedEntry(row)}
+                              className="btn-primary text-xs py-1.5 px-3 flex items-center gap-1.5 ml-auto"
                             >
-                              <Pencil size={11} /> Edit Entry
+                              <Eye size={13} /> View Entire Entry
                             </button>
                           </td>
                         </tr>
@@ -492,6 +512,101 @@ export default function DashboardPage() {
           </>
         )}
       </div>
+
+      {/* ── VIEW ENTIRE ENTRY MODAL ── */}
+      {selectedEntry && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5">
+            {/* Modal Header */}
+            <div className="flex justify-between items-start border-b border-slate-100 pb-4">
+              <div>
+                <span className="text-[10px] font-bold text-brand-600 bg-brand-50 px-2 py-0.5 rounded-md uppercase tracking-wider">
+                  Daily Entry Details
+                </span>
+                <h3 className="font-extrabold text-slate-900 text-xl mt-1 flex items-center gap-2">
+                  <Store size={18} className="text-brand-600" />
+                  {selectedEntry.shop}
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
+                  <Calendar size={12} /> Date: {format(new Date(selectedEntry.date), 'dd MMMM yyyy')}
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedEntry(null)}
+                className="text-slate-400 hover:text-slate-600 p-1"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Total Summary Bar */}
+            <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200/80">
+              <div>
+                <p className="label-xs">Total Volume</p>
+                <p className="text-xl font-extrabold text-brand-700">{selectedEntry.totalLitres.toFixed(2)} Litres</p>
+              </div>
+              <div>
+                <p className="label-xs">Total Packs/Units</p>
+                <p className="text-xl font-extrabold text-slate-800">{selectedEntry.totalUnits} Units</p>
+              </div>
+            </div>
+
+            {/* Itemized Line Items Breakdown */}
+            <div>
+              <p className="label-xs mb-2 flex items-center gap-1">
+                <Layers size={11} /> Itemized Breakdown
+              </p>
+              <div className="border border-slate-200 rounded-xl overflow-hidden">
+                <table className="w-full text-xs">
+                  <thead className="bg-slate-100 border-b border-slate-200">
+                    <tr>
+                      <th className="px-3 py-2 text-left font-bold text-slate-500">Product</th>
+                      <th className="px-3 py-2 text-left font-bold text-slate-500">Pack Size</th>
+                      <th className="px-3 py-2 text-center font-bold text-slate-500">Count (Packs)</th>
+                      <th className="px-3 py-2 text-right font-bold text-slate-500">Litres</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {selectedEntry.items.map(item => (
+                      <tr key={item.id} className="hover:bg-slate-50">
+                        <td className="px-3 py-2.5 font-bold text-slate-800">
+                          {item.product} <span className="text-[10px] text-brand-600 bg-brand-50 px-1 py-0.2 rounded font-bold">({item.shortName})</span>
+                        </td>
+                        <td className="px-3 py-2.5 text-slate-600 font-medium">{item.range}</td>
+                        <td className="px-3 py-2.5 text-center font-extrabold text-slate-900">{item.units}</td>
+                        <td className="px-3 py-2.5 text-right font-bold text-slate-900">{item.litres.toFixed(2)} L</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex justify-between items-center pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setSelectedEntry(null)}
+                className="btn-secondary text-xs py-2 px-4"
+              >
+                Close
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const entry = selectedEntry;
+                  setSelectedEntry(null);
+                  navigate(`/?date=${entry.date}&shopId=${entry.shopId}`);
+                }}
+                className="btn-primary text-xs py-2.5 px-5 flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 shadow-sm"
+              >
+                <Pencil size={13} /> Edit / Update Entry
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── FULL SCREEN CHART OVERLAY MODAL ── */}
       {fullScreenChart && (
@@ -522,8 +637,8 @@ export default function DashboardPage() {
           <div className="bg-white rounded-2xl flex-1 flex flex-col overflow-hidden shadow-2xl">
             <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
               <div>
-                <h3 className="font-bold text-slate-900 text-lg">Full Screen Distribution Records</h3>
-                <p className="text-xs text-slate-400">Total {filteredTableData.length} records</p>
+                <h3 className="font-bold text-slate-900 text-lg">Full Screen Distribution Submissions</h3>
+                <p className="text-xs text-slate-400">Total {filteredTableData.length} single-line submissions</p>
               </div>
 
               <div className="flex items-center gap-3">
@@ -552,7 +667,7 @@ export default function DashboardPage() {
               <table className="w-full text-sm">
                 <thead className="bg-slate-100 sticky top-0 border-b border-slate-200 z-10">
                   <tr>
-                    {['#', 'Date', 'Shop Name', 'Product', 'Pack Size', 'Units', 'Litres', 'Actions'].map(h => (
+                    {['#', 'Date', 'Shop Name', 'Products Summary', 'Total Units', 'Total Litres', 'Action'].map(h => (
                       <th key={h} className="px-5 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider last:text-right">
                         {h}
                       </th>
@@ -562,26 +677,31 @@ export default function DashboardPage() {
                 <tbody>
                   {filteredTableData.map((row, idx) => (
                     <tr key={row.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                      <td className="px-5 py-3 text-slate-400 text-xs">{idx + 1}</td>
-                      <td className="px-5 py-3 text-slate-600 text-xs font-medium">
+                      <td className="px-5 py-3.5 text-slate-400 text-xs">{idx + 1}</td>
+                      <td className="px-5 py-3.5 text-slate-600 text-xs font-semibold whitespace-nowrap">
                         {format(new Date(row.date), 'dd MMM yyyy')}
                       </td>
-                      <td className="px-5 py-3 font-semibold text-slate-800">{row.shop}</td>
-                      <td className="px-5 py-3">
-                        <span className="text-xs font-bold bg-brand-50 text-brand-700 px-2 py-0.5 rounded-md">{row.product}</span>
+                      <td className="px-5 py-3.5 font-bold text-slate-800 whitespace-nowrap">{row.shop}</td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {row.summaryBadges.map(b => (
+                            <span key={b.name} className="text-xs font-bold bg-brand-50 text-brand-700 px-2 py-0.5 rounded-md border border-brand-100">
+                              {b.name} {b.litres > 0 ? `${b.litres.toFixed(1)}L` : ''}
+                            </span>
+                          ))}
+                        </div>
                       </td>
-                      <td className="px-5 py-3 text-slate-500 text-xs">{row.range}</td>
-                      <td className="px-5 py-3 font-medium text-slate-700">{row.units}</td>
-                      <td className="px-5 py-3 font-bold text-slate-900">{row.litres.toFixed(2)} L</td>
-                      <td className="px-5 py-3 text-right">
+                      <td className="px-5 py-3.5 font-medium text-slate-700">{row.totalUnits} units</td>
+                      <td className="px-5 py-3.5 font-extrabold text-slate-900">{row.totalLitres.toFixed(2)} L</td>
+                      <td className="px-5 py-3.5 text-right whitespace-nowrap">
                         <button
                           onClick={() => {
                             setFullTableOpen(false);
-                            navigate(`/?date=${row.date}&shopId=${row.shopId}`);
+                            setSelectedEntry(row);
                           }}
-                          className="btn-secondary text-xs py-1 px-2.5 flex items-center gap-1 ml-auto text-blue-600 hover:text-blue-700"
+                          className="btn-primary text-xs py-1.5 px-3 flex items-center gap-1.5 ml-auto"
                         >
-                          <Pencil size={11} /> Edit Entry
+                          <Eye size={13} /> View Entire Entry
                         </button>
                       </td>
                     </tr>
