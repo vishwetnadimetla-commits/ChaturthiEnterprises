@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { format, subDays } from 'date-fns';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, LineChart, Line, AreaChart, Area,
+  ResponsiveContainer, AreaChart, Area,
 } from 'recharts';
 import {
-  Download, SlidersHorizontal, RefreshCw, Loader2, Maximize2, Minimize2,
-  ChevronLeft, ChevronRight, Pencil, Eye, ZoomIn, ZoomOut, Search, X
+  Download, SlidersHorizontal, RefreshCw, Loader2, Maximize2,
+  ChevronLeft, ChevronRight, Pencil, Eye, Search, X
 } from 'lucide-react';
 import { getDashboardData } from '../services/dashboard.service';
 import type { DashboardFilters, KPIData, ChartData, TableRow } from '../services/dashboard.service';
