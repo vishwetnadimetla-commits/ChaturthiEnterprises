@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+/* ===========================
+   THEME TOKENS
+   =========================== */
+@theme {
+  --color-brand-50:  #f5f0ff;
+  --color-brand-100: #ede5ff;
+  --color-brand-200: #d8c8ff;
+  --color-brand-300: #bb9dff;
+  --color-brand-400: #9a6bff;
+  --color-brand-500: #7c3aed;
+  --color-brand-600: #6d28d9;
+  --color-brand-700: #5b21b6;
+  --color-brand-800: #4c1d95;
+  --color-brand-900: #2e1065;
+
+  --font-sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+
+/* ===========================
+   BASE
+   =========================== */
+@layer base {
+  html {
+    font-family: var(--font-sans);
+  }
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+  * {
+    box-sizing: border-box;
+  }
+}
+
+/* ===========================
+   COMPONENT HELPERS
+   =========================== */
+@layer components {
+  .nav-active {
+    @apply bg-brand-50 text-brand-700 font-semibold;
+  }
+  .nav-inactive {
+    @apply text-slate-500 hover:text-slate-800 hover:bg-slate-100;
+  }
+  .card {
+    @apply bg-white rounded-2xl border border-slate-200 shadow-sm;
+  }
+  .input-base {
+    @apply w-full px-3 py-2.5 border border-slate-200 rounded-xl bg-slate-50
+           text-slate-900 placeholder-slate-400
+           focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent
+           transition-all;
+  }
+  .btn-primary {
+    @apply bg-brand-600 hover:bg-brand-700 active:bg-brand-800
+           text-white font-semibold rounded-xl px-5 py-2.5
+           transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply bg-white hover:bg-slate-50 active:bg-slate-100
+           text-slate-700 font-semibold rounded-xl px-4 py-2.5
+           border border-slate-200 transition-all shadow-sm;
+  }
+  .label-xs {
+    @apply text-[11px] font-semibold text-slate-400 uppercase tracking-wider;
+  }
+  .section-header {
+    @apply text-xl font-bold text-slate-800 tracking-tight;
+  }
+}
+
+/* Safe area for iOS */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
