@@ -190,6 +190,26 @@ export default function DashboardPage() {
 
       <div id="dash-export" className="flex-1 p-4 md:p-6 space-y-6 bg-slate-50">
 
+        {/* ── PERFORMANCE MANAGER INFOGRAPHIC BRAND HEADER (Rendered on PDF Report Export) ── */}
+        <div className="bg-gradient-to-r from-slate-900 via-brand-900 to-slate-900 text-white rounded-2xl p-6 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4 border border-brand-800/40">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="bg-brand-500/30 text-brand-200 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-widest border border-brand-400/30">
+                Performance Analytics & Infographic Report
+              </span>
+            </div>
+            <h1 className="text-2xl font-black tracking-tight text-white">Chaturthi Enterprises</h1>
+            <p className="text-xs text-slate-300 mt-1 font-medium">
+              Milk Distribution Audit & Operations Report · Period: <span className="text-white font-bold">{filters.fromDate}</span> to <span className="text-white font-bold">{filters.toDate}</span>
+            </p>
+          </div>
+          <div className="text-left md:text-right bg-white/10 backdrop-blur-xs p-3 px-4 rounded-xl border border-white/10 shrink-0">
+            <p className="text-[10px] uppercase font-bold tracking-wider text-brand-200">Generated On</p>
+            <p className="text-sm font-bold text-white">{format(new Date(), 'dd MMMM yyyy')}</p>
+            <p className="text-[11px] text-slate-300">Live Supabase Database Sync</p>
+          </div>
+        </div>
+
         {/* ── Filters ── */}
         <div className="card p-4">
           <p className="label-xs flex items-center gap-1.5 mb-3">

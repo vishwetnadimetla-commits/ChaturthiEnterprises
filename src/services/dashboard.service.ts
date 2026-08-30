@@ -190,82 +190,12 @@ function aggregate(items: any[], filters: DashboardFilters) {
   };
 }
 
-// ── Mock data (used if DB fetch fails) ──
-function mockData(filters: DashboardFilters) {
-  const start = parseISO(filters.fromDate);
-  const end = parseISO(filters.toDate);
-  const durationDays = Math.max(1, differenceInCalendarDays(end, start) + 1);
-  const totalLitres = 842.5;
-
-  const kpi: KPIData = {
-    totalLitres,
-    totalUnits: 3421,
-    totalShops: 29,
-    avgSellPerDay: parseFloat((totalLitres / durationDays).toFixed(2)),
-    durationDays,
-  };
-
-  const productChart: ChartData[] = [
-    { name: 'FCM',  litres: 340, units: 680  },
-    { name: 'SM',   litres: 240, units: 480  },
-    { name: 'TM',   litres: 180, units: 720  },
-    { name: 'CURD', litres: 62.5, units: 125 },
-    { name: 'TAAK', litres: 20,   units: 50  },
-  ];
-
-  const allDays = eachDayOfInterval({ start, end });
-  const dailyChart: ChartData[] = allDays.map((d, i) => ({
-    name: format(d, 'dd MMM'),
-    litres: 250 + Math.round(Math.sin(i) * 40),
-    units: 1000 + Math.round(Math.sin(i) * 150),
-  }));
-
-  const topShopsChart: ChartData[] = [
-    { name: 'Gopi Kishan Traders', litres: 185.0, units: 0 },
-    { name: 'Umar Farooq Kirana',  litres: 85.0,  units: 0 },
-    { name: 'Siddheshwar Gruh',   litres: 48.0,  units: 0 },
-    { name: 'Pulgam Kirana',      litres: 24.0,  units: 0 },
-    { name: 'Mudgonda Kirana',    litres: 22.0,  units: 0 },
-  ];
-
-  const tableData: TableRow[] = [
-    {
-      id: 'e1',
-      date: filters.toDate,
-      shopId: 's1',
-      shop: 'Gopi Kishan Traders',
-      totalUnits: 96,
-      totalLitres: 36.0,
-      summaryBadges: [{ name: 'FCM', litres: 24.0 }, { name: 'TM', litres: 12.0 }],
-      items: [
-        { id: 'i1', product: 'Full Cream Milk', shortName: 'FCM', range: '500 ml', units: 48, litres: 24.0 },
-        { id: 'i2', product: 'Toned Milk', shortName: 'TM', range: '250 ml', units: 48, litres: 12.0 },
-      ],
-    },
-    {
-      id: 'e2',
-      date: filters.toDate,
-      shopId: 's2',
-      shop: 'Masan Kirana',
-      totalUnits: 6,
-      totalLitres: 3.0,
-      summaryBadges: [{ name: 'FCM', litres: 3.0 }],
-      items: [
-        { id: 'i3', product: 'Full Cream Milk', shortName: 'FCM', range: '500 ml', units: 6, litres: 3.0 },
-      ],
-    },
-  ];
-
-  return { kpi, productChart, dailyChart, topShopsChart, tableData };
-}
-
 export const getDashboardData = async (filters: DashboardFilters) => {
   try {
     const items = await fetchLiveData(filters);
-    if (items.length === 0) return mockData(filters);
     return aggregate(items, filters);
   } catch (err) {
-    console.warn('Dashboard: falling back to mock data', err);
-    return mockData(filters);
+    console.error('Error fetching dashboard data:', err);
+    return aggregate([], filters);
   }
 };
